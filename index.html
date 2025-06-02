@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模擬股票市場挑戰</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>模擬股票市場挑戰</h1>
+    </header>
+
+    <main>
+        <section id="game-start-section" class="game-section">
+            <h2>歡迎來到模擬股票市場挑戰！</h2>
+            <p class="selection-hint">歡迎挑戰！您將獲得 100 萬元初始資金，並在每輪挑戰中將累積資金平均投資於您所選的 5 檔股票中。請點擊開始挑戰。</p>
+            <div class="mode-selection">
+                <button class="mode-btn selected-mode" data-mode="five-year">五年挑戰</button>
+            </div>
+            <button id="start-game-btn" class="btn">開始挑戰</button>
+        </section>
+
+        <section id="game-section" class="game-section hidden">
+            <h2 id="current-year-title">五年挑戰 - 第 1 年：當前市場情境 (請選 5 檔股票)：</h2>
+            <p>已選 <span id="selected-count">0</span> / 5 檔股票</p>
+            <ul id="selected-stocks-ul">
+                </ul>
+            <div id="stock-list" class="stock-grid">
+                </div>
+            <button id="confirm-selection-btn" class="btn" disabled>確認選股組合</button>
+        </section>
+
+        <section id="results-section" class="game-section hidden">
+            <h2 id="results-title">投資結果</h2>
+            <div class="result-summary">
+                <p>本年報酬率：<span id="return-rate">0%</span></p>
+                <p>風險評級：<span id="risk-level"></span></p>
+                <p>分散程度：<span id="diversification-level"></span></p>
+            </div>
+
+            <h3>本年個股表現：</h3>
+            <ul id="single-year-stock-performance">
+                </ul>
+
+            <div class="buttons">
+                <button id="analyze-btn" class="btn">檢視詳細分析</button>
+                <button id="next-year-btn" class="btn hidden">進入下一年挑戰</button>
+            </div>
+        </section>
+
+        <section id="challenge-end-section" class="game-section hidden">
+            <h2>五年挑戰結束！</h2>
+            <p>您的最終累計報酬率：<span id="final-cumulative-return">0%</span></p>
+            <p>恭喜您完成所有挑戰！</p>
+            <div class="buttons">
+                <input type="text" id="player-name-input" placeholder="請輸入您的姓名 (用於排行榜)">
+                <button id="submit-final-score-btn" class="btn">提交成績</button>
+                <h3>五年總資產變化圖：</h3>
+                <div class="chart-container">
+                    <canvas id="cumulative-capital-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="analysis-section" class="game-section hidden">
+            <h2 id="analysisTitle">投資組合分析</h2>
+            <div id="local-analysis" class="analysis-content">
+                </div>
+            <button id="back-to-results-btn" class="btn">返回</button>
+        </section>
+
+        <section id="leaderboard-section" class="game-section hidden">
+            <h2>排行榜</h2>
+            <ul id="leaderboard-list">
+                </ul>
+            <div class="buttons">
+                <button id="restart-game-btn" class="btn">重新挑戰</button>
+                <button id="back-to-home-btn" class="btn">返回首頁</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
