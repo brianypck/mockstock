@@ -98,8 +98,8 @@ const marketEvents = {
 };
 
 // DOM 元素變數
-let startGameBtn, gameStartSection, gameSection, modeBtns, selectionHint, currentYearTitle;
-let stockListContainer, selectedCountDisplay, selectedStocksUl, confirmSelectionBtn;
+let startGameBtn, gameStartSection, gameSection, modeBtns, selectionHint;
+let currentYearTitle, currentCapitalDisplay, stockListContainer, selectedCountDisplay, selectedStocksUl, confirmSelectionBtn; 
 let resultsSection, returnRateDisplay, riskLevelDisplay, diversificationLevelDisplay, analyzeBtn, nextYearBtn, resultsTitle;
 let singleYearStockPerformanceUl;
 let analysisSection, localAnalysisDisplay, backToResultsBtn, analysisTitle;
@@ -120,20 +120,19 @@ const totalChallengeYears = 5; // 連續挑戰的總年數
 let currentChallengeYearIndex = 0; // 當前進行到第幾年 (0-indexed)
 let cumulativeReturnRate = 0; // 連續挑戰模式下的累計總報酬率
 let allYearsInvestmentRecords = []; // 儲存每年的投資記錄和結果，用於總體分析，現在將包含每年的資產總額
-let availableMarketEventKeys = []; // **新增：可用於本輪挑戰的市場事件鍵值列表**
-let isViewingTotalAnalysis = false; // **新增：追蹤是否正在檢視總體分析 (True for total analysis, False for single year analysis)**
+let availableMarketEventKeys = []; // 可用於本輪挑戰的市場事件鍵值列表
+let isViewingTotalAnalysis = false; // 追蹤是否正在檢視總體分析 (True for total analysis, False for single year analysis)
 
 // 玩家資金變數
 const initialCapital = 1000000; // 每個玩家的初始資金為 100 萬元
 let currentCapital = initialCapital; // 當前累計的資金
-let gameEnded = false; // 新增：標記遊戲是否已結束
-let scoreSubmitted = false; // **新增：標記分數是否已提交，防止重複提交**
+let gameEnded = false; // 標記遊戲是否已結束
+let scoreSubmitted = false; // 標記分數是否已提交，防止重複提交
 
 
 // 隨機選擇一個市場事件 (現在會排除已出現過的事件)
 function getRandomMarketEvent() {
     // 如果可用事件列表為空，則重新填充（確保在五年挑戰中總是有足夠的事件）
-    // 這會在挑戰開始時初始化，或在事件用盡後重新填充
     if (availableMarketEventKeys.length === 0) {
         availableMarketEventKeys = Object.keys(marketEvents);
         // 如果總事件數少於挑戰年數，則可能會有重複，但這是為了確保遊戲能繼續
@@ -146,8 +145,7 @@ function getRandomMarketEvent() {
     const selectedEventKey = availableMarketEventKeys[randomIndex];
 
     // 從可用列表中移除已選事件，確保不重複
-    // Fix: 這裡應該只移除被選中的那一個元素，而不是從頭移除
-    availableMarketEventKeys.splice(randomIndex, 1); // 移除已選中的元素
+    availableMarketEventKeys.splice(randomIndex, 1);
 
     return {
         key: selectedEventKey,
@@ -165,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modeBtns = document.querySelectorAll('.mode-btn');
     selectionHint = document.querySelector('.selection-hint');
     currentYearTitle = document.getElementById('current-year-title');
+    currentCapitalDisplay = document.getElementById('current-capital-display'); // **獲取新增的 DOM 元素**
 
     stockListContainer = document.getElementById('stock-list');
     selectedCountDisplay = document.getElementById('selected-count');
@@ -204,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finalReturnRate = 0;
         numericFinalReturnRate = 0;
         cumulativeReturnRate = 0;
-        allYearsInvestmentRecords = []; // **確保每次新遊戲都清空**
+        allYearsInvestmentRecords = [];
         currentChallengeYearIndex = 0;
         currentMarketEvent = null;
         availableMarketEventKeys = Object.keys(marketEvents); // 重置可用市場事件
@@ -236,7 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
         localAnalysisDisplay.textContent = '載入中...';
         startGameBtn.disabled = false;
         selectionHint.style.display = 'block';
-        selectionHint.textContent = '歡迎挑戰！您將獲得 100 萬元初始資金，並在每輪挑戰中將累積資金平均投資於您所選的 5 檔股票中。請點擊開始挑戰。';
+        selectionHint.textContent = '歡迎挑戰！您將獲得 100 萬元初始資金，並在每輪挑戰中將累積資金平均投資於您所選的 1-5 檔股票中。請點擊開始挑戰。'; 
+
+        // 更新顯示初始資金
+        currentCapitalDisplay.textContent = initialCapital.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }); 
 
         // 確保五年挑戰按鈕是選中狀態
         modeBtns.forEach(btn => {
@@ -269,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const stockCard = document.createElement('div');
             stockCard.classList.add('stock-card');
             stockCard.dataset.id = stock.id;
-            // **修改：增加 category 和 volatility 標籤顯示**
             stockCard.innerHTML = `
                 <h3>${stock.name} (${stock.id})</h3>
                 <p>${stock.desc}</p>
@@ -296,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedStocks = selectedStocks.filter(s => s.id !== stock.id);
             card.classList.remove('selected');
         } else {
-            if (selectedStocks.length < 5) {
+            if (selectedStocks.length < 5) { 
                 selectedStocks.push(stock);
                 card.classList.add('selected');
             } else {
@@ -317,7 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 如果遊戲已結束，確認選股按鈕應該被禁用
-        confirmSelectionBtn.disabled = selectedStocks.length !== 5 || gameEnded;
+        // 只要選了至少 1 檔股票，就可以啟用確認按鈕
+        confirmSelectionBtn.disabled = selectedStocks.length === 0 || gameEnded;
     }
 
     // 模擬報酬計算 (根據選定的市場情境)
@@ -326,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalVolatilityScore = 0;
         let categorySet = new Set();
         const scenarioReturns = marketEvents[eventKey].returns;
-        const individualStockReturns = []; // **新增：儲存每檔股票的漲跌幅**
+        const individualStockReturns = []; 
 
         stocks.forEach(stock => {
             let stockReturn = 0;
@@ -340,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalVolatilityScore += 1;
             } else if (stock.volatility === '中') {
                 totalVolatilityScore += 3;
-            } else if (stock.volatility === '高') {
+            } else { // '高'
                 totalVolatilityScore += 5;
             }
             individualStockReturns.push({
@@ -350,8 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // 報酬率基於所選股票數量平均計算
         const averageReturn = totalReturn / stocks.length;
-        const currentScenarioReturnRate = averageReturn; // 這裡已經是百分比了
+        const currentScenarioReturnRate = averageReturn; 
         finalReturnRate = currentScenarioReturnRate.toFixed(2);
         numericFinalReturnRate = currentScenarioReturnRate;
 
@@ -371,11 +374,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let diversification = '';
-        if (categorySet.size >= 4) {
+        if (categorySet.size >= stocks.length && stocks.length >= 4) { // 如果選了 4 檔以上且類別數等於選股數，則非常良好
             diversification = '非常良好';
-        } else if (categorySet.size >= 3) {
+        } else if (categorySet.size >= Math.ceil(stocks.length * 0.6)) { // 至少 60% 類別分散
             diversification = '良好';
-        } else if (categorySet.size >= 2) {
+        } else if (categorySet.size >= 2) { // 至少兩種類別
             diversification = '一般';
         } else {
             diversification = '集中';
@@ -387,8 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
             riskLevel: risk,
             diversificationLevel: diversification,
             capitalChange: yearCapitalChange.toFixed(0),
-            currentCapital: currentCapital, // **保留數字以便後續 Chart.js 使用**
-            individualStockReturns: individualStockReturns // **新增返回單獨股票報酬率**
+            currentCapital: currentCapital, 
+            individualStockReturns: individualStockReturns 
         };
     }
 
@@ -402,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             allYearsInvestmentRecords.forEach((record, index) => {
                 const eventDesc = marketEvents[record.eventKey] ? marketEvents[record.eventKey].description : '未知市場情境';
+                // 這裡的 record.selectedStocks 已經是物件陣列了
                 const selectedStocksNames = record.selectedStocks.map(s => s.name).join('、');
 
                 // 現在 index 0 對應第 1 年的結果，所以直接使用 index + 1
@@ -438,9 +442,14 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisText = `您面臨的市場情境是：**${eventDesc}**\n\n`;
             analysisText += `您的投資組合包含：${stockNames}。`;
 
-            if (categories.length >= 4) {
+            // 根據實際選股數量調整分散性提示
+            if (stocks.length === 0) { // 由於已經擋下selectedStocks.length === 0，此處邏輯上不會執行
+                analysisText += ` 您本年未選擇任何股票。`; // 這應該不會發生
+            } else if (stocks.length === 1) {
+                analysisText += ` 您的投資過於集中在單一股票，風險非常高。`;
+            } else if (categories.length >= stocks.length && stocks.length >= 4) {
                 analysisText += ` 這個組合類股分散性高，有助於降低單一產業波動的風險。`;
-            } else if (categories.length >= 3) {
+            } else if (categories.length >= Math.ceil(stocks.length * 0.6)) {
                 analysisText += ` 這個組合類股分散性良好，能在一定程度上抵禦市場風險。`;
             } else if (categories.length >= 2) {
                 analysisText += ` 這個組合類股有一定分散性，但仍需留意。`;
@@ -577,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 提交分數到 Firebase (現在只用於五年挑戰結束時的提交)
     function submitScore() {
-        // **新增：檢查分數是否已提交**
+        // 檢查分數是否已提交
         if (scoreSubmitted) {
             alert('您已經提交過分數了。');
             return; // 阻止重複提交
@@ -593,31 +602,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerName) {
             let scoreToSubmit = parseFloat(cumulativeReturnRate.toFixed(2));
             let contextInfo = '五年挑戰';
-            let stocksInfo = '各年度詳細記錄請參閱總體分析';
+            // 由於選股數量彈性，直接儲存每年的選股清單會很長。
+            // 這裡將所有年份的選股集合起來，去重，並顯示為「總選股組合」
+            let allUniqueStocks = new Set();
+            allYearsInvestmentRecords.forEach(record => {
+                record.selectedStocks.forEach(s => allUniqueStocks.add(`${s.name}(${s.id})`));
+            });
+            let stocksInfo = Array.from(allUniqueStocks).join('、');
+            if (stocksInfo.length > 100) { // 限制長度，避免過長
+                stocksInfo = stocksInfo.substring(0, 97) + '...';
+            }
+
+
             let finalCapitalForLeaderboard = currentCapital.toFixed(0);
 
             scoresRef.push({
                 name: playerName,
                 score: scoreToSubmit,
-                selectedStocks: stocksInfo,
+                selectedStocks: stocksInfo, // 這裡可以考慮儲存一個簡化版的選股摘要
                 context: contextInfo,
                 finalCapital: finalCapitalForLeaderboard,
                 timestamp: Date.now()
             }).then(() => {
                 alert('成績已提交！');
                 loadLeaderboard(); // 確保排行榜資料是最新的
-                scoreSubmitted = true; // **設定分數已提交標記**
-                submitFinalScoreBtn.disabled = true; // **禁用提交按鈕**
+                scoreSubmitted = true; // 設定分數已提交標記
+                submitFinalScoreBtn.disabled = true; // 禁用提交按鈕
 
-                // **移除詢問，直接顯示總體分析**
+                // 提交成功後直接導向排行榜
                 challengeEndSection.classList.add('hidden');
-                analysisSection.classList.remove('hidden');
-                localAnalysisDisplay.textContent = '正在生成總體投資分析...';
-                backToResultsBtn.classList.remove('hidden');
-                isViewingTotalAnalysis = true; // Set to total analysis view
-                const analysis = generateLocalAnalysis(null, null, true);
-                localAnalysisDisplay.textContent = analysis;
-                analysisTitle.textContent = `五年挑戰總體投資分析`;
+                analysisSection.classList.add('hidden'); // 確保分析區塊也被隱藏
+                leaderboardSection.classList.remove('hidden');
 
             }).catch(error => {
                 console.error("Error writing to Firebase Database", error);
@@ -663,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.innerHTML = `
                         <span>${index + 1}. ${s.name} (${s.context})</span>
                         <span class="${s.score < 0 ? 'negative' : ''}">${s.score}% (最終資產：${s.finalCapital ? s.finalCapital : 'N/A'} 元)</span>
-                        <br><small>(${s.selectedStocks})</small>
+                        <br><small>總選股：${s.selectedStocks}</small>
                     `;
                     leaderboardList.appendChild(li);
                 });
@@ -709,13 +724,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentChallengeYearIndex = 0;
         cumulativeReturnRate = 0;
         currentCapital = initialCapital;
-        allYearsInvestmentRecords = []; // **確保每次新遊戲都清空，且不再預先加入初始資金記錄**
+        allYearsInvestmentRecords = [];
 
         availableMarketEventKeys = Object.keys(marketEvents); // 重新初始化可用事件列表
         gameEnded = false;
-        scoreSubmitted = false; // **確保新遊戲開始時重置提交標記**
-        submitFinalScoreBtn.disabled = false; // **確保新遊戲開始時提交按鈕可用**
-        playerNameInput.value = ''; // **確保新遊戲開始時清空姓名輸入框**
+        scoreSubmitted = false; // 確保新遊戲開始時重置提交標記
+        submitFinalScoreBtn.disabled = false; // 確保新遊戲開始時提交按鈕可用
+        playerNameInput.value = ''; // 確保新遊戲開始時清空姓名輸入框
 
 
         startNextChallengeYear();
@@ -729,8 +744,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 如果遊戲已結束，此按鈕無效
         if (gameEnded) return;
 
-        if (selectedStocks.length !== 5) {
-            alert('請選擇 5 檔股票！');
+        // 不再強制選擇 5 檔，只要有選股即可
+        if (selectedStocks.length === 0) {
+            alert('請至少選擇 1 檔股票！');
             return;
         }
 
@@ -745,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
         diversificationLevelDisplay.textContent = diversificationLevel;
         resultsTitle.textContent = `投資結果 - 市場情境：${currentMarketEvent.data.description}`;
 
-        // **新增：顯示單年個股漲跌幅**
+        // 顯示單年個股漲跌幅
         singleYearStockPerformanceUl.innerHTML = '';
         individualStockReturns.forEach(stock => {
             const li = document.createElement('li');
@@ -757,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 記錄本年投資結果
         allYearsInvestmentRecords.push({
             eventKey: currentMarketEvent.key,
-            selectedStocks: [...selectedStocks],
+            selectedStocks: [...selectedStocks], // 儲存選股的完整物件，便於後續分析
             returnRate: finalReturnRate,
             numericReturnRate: numericFinalReturnRate,
             riskLevel: riskLevel,
@@ -768,25 +784,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 累計報酬率 (固定為五年挑戰)
-        cumulativeReturnRate += numericFinalReturnRate;
+        // 這裡的累計報酬率應該是總體的資本變化，而不是簡單的百分比累加，
+        // 因為每年的基數不同。但為了簡化遊戲，如果 cumulativeReturnRate 僅用於顯示
+        // 總的報酬率百分比，則維持其累加行為。如果需要更精確的「實際財富變化」
+        // 百分比，則需要重新計算 (最終資本 / 初始資本 - 1) * 100%
+        // 在這裡，我們保持現有邏輯，它代表的是「每年報酬率的簡單平均累計」
+        // 如果要顯示「最終資產相較於初始資產的百分比變化」，則應在挑戰結束時計算：
+        // (currentCapital / initialCapital - 1) * 100
+        cumulativeReturnRate = (currentCapital / initialCapital - 1) * 100; // 修正為實際資本變化帶來的總報酬率
 
 
-        // 當前一年是最後一年時，立即且強制性地跳轉到挑戰結束畫面
-        if (currentChallengeYearIndex < totalChallengeYears - 1) { // 還有下一輪
-            nextYearBtn.classList.remove('hidden');
+        // 判斷是否為最後一年
+        if (currentChallengeYearIndex === totalChallengeYears - 1) { // 如果是第五年
+            gameEnded = true; // **設置遊戲結束標記**
+            resultsSection.classList.remove('hidden'); // 仍然顯示結果頁面
+            gameSection.classList.add('hidden');
+            nextYearBtn.textContent = '檢視五年總結'; // 改變按鈕文字
+            nextYearBtn.classList.remove('hidden'); // 確保按鈕可見
+            confirmSelectionBtn.disabled = true; // 禁用選股確認按鈕
+
+        } else { // 非最後一年
             resultsSection.classList.remove('hidden');
             gameSection.classList.add('hidden');
-        } else { // 最後一年結束 (currentChallengeYearIndex === totalChallengeYears - 1)
-            gameEnded = true; // **設置遊戲結束標記**
-            resultsSection.classList.add('hidden');
-            gameSection.classList.add('hidden');
-            challengeEndSection.classList.remove('hidden');
-            finalCumulativeReturnDisplay.textContent = `${cumulativeReturnRate.toFixed(2)}% (最終資產：${currentCapital.toFixed(0)} 元)`;
-            finalCumulativeReturnDisplay.classList.toggle('negative', cumulativeReturnRate < 0);
-            nextYearBtn.classList.add('hidden');
-            confirmSelectionBtn.disabled = true;
-
-            drawCumulativeCapitalChart(); // **在這裡繪製總資產圖表**
+            nextYearBtn.textContent = '進入下一年挑戰'; // 確保按鈕文字正確
+            nextYearBtn.classList.remove('hidden');
         }
     });
 
@@ -794,43 +815,49 @@ document.addEventListener('DOMContentLoaded', () => {
     analyzeBtn.addEventListener('click', () => {
         analysisSection.classList.remove('hidden');
         resultsSection.classList.add('hidden');
-        // 如果是五年挑戰的最後一年，並且已經提交了分數，則此時看的是總體分析
-        if (selectedMode === 'five-year' && currentChallengeYearIndex === totalChallengeYears -1 && gameEnded) {
-            isViewingTotalAnalysis = true; // Set to total analysis view
-            analysisTitle.textContent = `五年挑戰總體投資分析`;
-            localAnalysisDisplay.textContent = '正在生成總體投資分析...'; // 顯示載入中
-            const analysis = generateLocalAnalysis(null, null, true); // 傳遞 true 表示要總體分析
-            localAnalysisDisplay.textContent = analysis;
-        } else {
-            isViewingTotalAnalysis = false; // Set to single year analysis view
-            analysisTitle.textContent = `第 ${currentChallengeYearIndex + 1} 年投資組合分析`;
-            const lastYearRecord = allYearsInvestmentRecords[allYearsInvestmentRecords.length -1];
-            const analysis = generateLocalAnalysis(lastYearRecord.selectedStocks, lastYearRecord.eventKey, false);
-            localAnalysisDisplay.textContent = analysis;
-        }
+        
+        // 判斷是否正在檢視總體分析 (僅當遊戲結束且按鈕文字為「檢視五年總結」時才算)
+        // 這裡的邏輯變更為：analyzeBtn 永遠只顯示單年分析
+        isViewingTotalAnalysis = false; // 點擊 analyzeBtn 永遠是單年分析
+        analysisTitle.textContent = `第 ${currentChallengeYearIndex + 1} 年投資組合分析`;
+        const lastYearRecord = allYearsInvestmentRecords[allYearsInvestmentRecords.length -1];
+        const analysis = generateLocalAnalysis(lastYearRecord.selectedStocks, lastYearRecord.eventKey, false);
+        localAnalysisDisplay.textContent = analysis;
+        
         backToResultsBtn.classList.remove('hidden'); // 返回按鈕始終顯示
     });
 
-    // 進入下一年挑戰按鈕
+    // 進入下一年挑戰按鈕 / 檢視五年總結按鈕
     nextYearBtn.addEventListener('click', () => {
-        // 如果遊戲已結束，此按鈕無效
-        if (gameEnded) return;
-
-        currentChallengeYearIndex++;
-        if (currentChallengeYearIndex < totalChallengeYears) {
+        // 如果遊戲已結束，且按鈕文字是「檢視五年總結」，則進入總結頁面
+        if (gameEnded && nextYearBtn.textContent === '檢視五年總結') {
             resultsSection.classList.add('hidden');
-            gameSection.classList.remove('hidden');
-            selectedStocks = []; // 清空已選股票
-            updateSelectedStocksDisplay(); // 更新顯示
-            loadStocks(); // 重新載入股票卡片狀態
-            startNextChallengeYear(); // 開始下一年的流程
+            gameSection.classList.add('hidden');
+            challengeEndSection.classList.remove('hidden');
+            // 這裡的 cumulativeReturnRate 已經在 confirmSelectionBtn 點擊時更新為基於總資產的實際累計報酬率
+            finalCumulativeReturnDisplay.textContent = `${cumulativeReturnRate.toFixed(2)}% (最終資產：${currentCapital.toFixed(0)} 元)`;
+            finalCumulativeReturnDisplay.classList.toggle('negative', cumulativeReturnRate < 0);
+            nextYearBtn.classList.add('hidden'); // 隱藏此按鈕
+            confirmSelectionBtn.disabled = true; // 再次禁用確認選股按鈕
+
+            drawCumulativeCapitalChart(); // 在這裡繪製總資產圖表
+        } else { // 正常進入下一年挑戰
+            currentChallengeYearIndex++;
+            if (currentChallengeYearIndex < totalChallengeYears) {
+                resultsSection.classList.add('hidden');
+                gameSection.classList.remove('hidden');
+                selectedStocks = []; // 清空已選股票
+                updateSelectedStocksDisplay(); // 更新顯示
+                loadStocks(); // 重新載入股票卡片狀態
+                startNextChallengeYear(); // 開始下一年的流程
+            }
         }
     });
 
     // 返回結果頁面按鈕 (從分析頁面返回)
     backToResultsBtn.addEventListener('click', () => {
-        // 如果正在檢視總體分析 (挑戰結束後)，則返回排行榜
-        if (isViewingTotalAnalysis) {
+        // 無論是單年分析還是總體分析，都返回到挑戰結束頁面（如果是總體分析則返回排行榜）
+        if (isViewingTotalAnalysis) { // 這個邏輯目前不會被 analyzeBtn 直接觸發，而是由 nextYearBtn 觸發
             analysisSection.classList.add('hidden');
             leaderboardSection.classList.remove('hidden');
             loadLeaderboard(); // 確保排行榜是最新的
@@ -864,11 +891,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 啟動下一年的挑戰 (包含情境生成和顯示)
     function startNextChallengeYear() {
         currentMarketEvent = getRandomMarketEvent();
-        currentYearTitle.textContent = `五年挑戰 - 第 ${currentChallengeYearIndex + 1} 年：當前市場情境 (${currentMarketEvent.data.description}) (請選 5 檔股票)：`;
+        currentYearTitle.textContent = `五年挑戰 - 第 ${currentChallengeYearIndex + 1} 年：當前市場情境 (${currentMarketEvent.data.description}) (請選 1-5 檔股票)：`; 
+        currentCapitalDisplay.textContent = currentCapital.toLocaleString('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }); // **更新總資產顯示**
         selectedStocks = []; // 清空之前的選股
-        updateSelectedStocksDisplay(); // 更新顯示
+        selectedCountDisplay.textContent = '0'; // 確保數字顯示為 0
+        selectedStocksUl.innerHTML = ''; // 清空列表
+        confirmSelectionBtn.disabled = true; // 確保按鈕被禁用直到選滿 1 檔
         loadStocks(); // 重新載入股票卡片（清除之前選中的狀態）
-        confirmSelectionBtn.disabled = true; // 確保按鈕被禁用直到選滿 5 檔
         nextYearBtn.classList.add('hidden'); // 隱藏下一輪按鈕
         analyzeBtn.classList.remove('hidden'); // 確保檢視詳細分析按鈕可見
     }
